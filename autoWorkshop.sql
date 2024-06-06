@@ -280,7 +280,13 @@ create table if not exists supplierContactPhone(
 	constraint fk_supplierContact_phone_type_id foreign key(fkPhoneTypeId) references phoneType(phoneTypeId)
 );
 
-
+-- Creation of piece table
+create table if not exists piece(
+	pieceId int auto_increment,
+	name varchar(80) not null,
+	description text,
+	constraint pk_piece_id primary key(pieceId)
+);
 
 
 
