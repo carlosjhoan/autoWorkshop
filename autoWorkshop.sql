@@ -208,7 +208,30 @@ create table if not exists repair(
 	constraint fk_repair_vehicle_id foreign key(fkVehicleId) references vehicle(vehicleId)
 );
 
+-- Creation of outSiteRepairService table
+create table if not exists outSiteRepairService(
+	fkRepairId int not null,
+	fkOutSiteServiceId int not null,
+	fkEmployeeId int not null,
+	address varchar(100) not null,
+	fkCityId int not null,
+	constraint pk_outSiteRepairService_id primary key(fkRepairId, fkOutSiteServiceId),
+	constraint fk_outSiteService_repair_id foreign key(fkRepairId) references repair(repairId),
+	constraint fk_outSiteRepair_service_id foreign key(fkOutSiteServiceId) references outSiteService(outSiteServiceId),
+	constraint fk_outSiteServiceRepair_employee_id foreign key(fkEmployeeId) references employee(employeeId),
+	constraint fk_outSiteServiceRepair_city_id foreign key(fkCityId) references city(cityId)
+);
 
+-- Creation of onSiteRepairService table
+create table if not exists onSiteRepairService(
+	fkRepairId int not null,
+	fkOnSiteServiceId int not null,
+	fkEmployeeId int not null,
+	constraint pk_onSiteRepairService_id primary key(fkRepairId, fkOnSiteServiceId),
+	constraint fk_onSiteService_repair_id foreign key(fkRepairId) references repair(repairId),
+	constraint fk_onSiteRepair_service_id foreign key(fkOnSiteServiceId) references onSiteService(onSiteServiceId),
+	constraint fk_onSiteServiceRepair_employee_id foreign key(fkEmployeeId) references employee(employeeId)
+);
 
 
 
