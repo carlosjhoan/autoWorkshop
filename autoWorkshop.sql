@@ -142,16 +142,29 @@ create table if not exists job(
 	constraint pk_job_id primary key(jobId)
 ); 
 
+-- Creation of headquarter table
+create table if not exists headquarter(
+	headquarterId int auto_increment,
+	name varchar(70) not null,
+	address varchar(70) not null,
+	fkCityId int not null,
+	constraint pk_headquarter_id primary key(headquarterId),
+	constraint fk_headquarter_city_id foreign key(fkCityId) references city(CityId)
+);
+
 -- Creation of employee table
 create table if not exists employee(
 	employeeId int auto_increment,
 	firstName varchar(70) not null,
 	lastName varchar(70) not null,
 	fkJobId int,
+	fkHeadquarterId int not null,
 	email varchar(100) unique,
 	constraint pk_employee_id primary key(employeeId),
-	constraint fk_employee_job_id foreign key(fkJobId) references job(jobId)
+	constraint fk_employee_job_id foreign key(fkJobId) references job(jobId),
+	constraint fk_employee_headquarter_id foreign key(fkHeadquarterId) references headquarter(headquarterId)
 );
+
 
 
 -- Creation of employeeDocument table
@@ -165,15 +178,7 @@ create table if not exists employeeDocument(
 	constraint fk_employee_document_type_id foreign key(fkTypeId) references documentType(typeId)	
 );
 
--- Creation of headquarter table
-create table if not exists headquarter(
-	headquarterId int auto_increment,
-	name varchar(70) not null,
-	address varchar(70) not null,
-	fkCityId int not null,
-	constraint pk_headquarter_id primary key(headquarterId),
-	constraint fk_headquarter_city_id foreign key(fkCityId) references city(CityId)
-);
+
 
 
 
