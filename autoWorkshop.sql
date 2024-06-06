@@ -202,7 +202,8 @@ create table if not exists employeeDocument(
 create table if not exists repair(
 	repairId int auto_increment,
 	fkVehicleId int not null,
-	repairDate date not null,
+	repairDateIn date not null,
+	repairDateOut date,
 	description text,
 	constraint pk_repair_id primary key(repairId),
 	constraint fk_repair_vehicle_id foreign key(fkVehicleId) references vehicle(vehicleId)
