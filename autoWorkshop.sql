@@ -235,6 +235,51 @@ create table if not exists onSiteRepairService(
 );
 
 
+-- Creation of supplier table
+create table if not exists supplier(
+	supplierId int auto_increment,
+	name varchar(50) not null,
+	email varchar(50) unique,
+	fkCityId int,
+	constraint pk_supplier_id primary key(supplierId),
+	constraint fk_supplier_city_id foreign key(fkCityId) references city(cityId)
+);
+
+-- Creation of supplierPhone table
+create table if not exists supplierPhone(
+	supplierPhoneId int auto_increment,
+	phoneNum varchar(20),
+	fkPhoneTypeId int,
+	fkSupplierId int not null,
+	constraint pk_supplier_phone_id primary key(supplierPhoneId),
+	constraint fk_supplier_phone_id foreign key(fkSupplierId) references supplier(supplierId),
+	constraint fk_supplier_phone_type_id foreign key(fkPhoneTypeId) references phoneType(phoneTypeId)
+);
+
+
+
+-- Creation of supplierContact table
+create table if not exists supplierContact(
+	supplierContactId int auto_increment,
+	firstName varchar(50) not null,
+	lastName varchar(50),
+	email varchar(100) unique,
+	fkSupplierId int not null,
+	constraint pk_supplierContact_id primary key(supplierContactId),
+	constraint fk_phone_contact_id foreign key(fkSupplierId) references supplier(supplierId)
+);
+
+-- Creation of supplierContactPhone table
+create table if not exists supplierContactPhone(
+	supplierContactPhoneId int auto_increment,
+	phoneNum varchar(20),
+	fkPhoneTypeId int,
+	fkSupplierContactId int not null,
+	constraint pk_supplierContact_phone_id primary key(supplierContactPhoneId),
+	constraint fk_supplierContact_phone_id foreign key(fkSupplierContactId) references supplierContact(supplierContactId),
+	constraint fk_supplierContact_phone_type_id foreign key(fkPhoneTypeId) references phoneType(phoneTypeId)
+);
+
 
 
 
