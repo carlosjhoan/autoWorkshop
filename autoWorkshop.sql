@@ -126,14 +126,34 @@ create table if not exists vehicle(
 	constraint fk_vehicle_customer_id foreign key(fkCustomerId) references customer(customerId)	
 );
 
--- Creation of service table
-create table if not exists service(
-	serviceId int auto_increment,
+-- Creation of zone table
+create table if not exists zone(
+	zoneId int auto_increment,
+	name varchar(70) not null,
+	description text,
+	constraint pk_zone_id primary key(zoneId)
+);
+
+-- Creation of onSiteService table
+create table if not exists onSiteService(
+	onSiteServiceId int auto_increment,
+	name varchar(70) not null,
+	description text not null,
+	fkZoneId int not null,
+	price decimal(15,2) not null,
+	constraint pk_onSiteService_id primary key(onSiteServiceId),
+	constraint fk_onSiteService_zone_id foreign key(fkZoneId) references zone(zoneId)
+);
+
+-- Creation of outSiteService table
+create table if not exists outSiteService(
+	outSiteServiceId int auto_increment,
 	name varchar(70) not null,
 	description text not null,
 	price decimal(15,2) not null,
-	constraint pk_service_id primary key(serviceId)
+	constraint pk_outSiteService_id primary key(outSiteServiceId)
 );
+
 
 -- Creation of jobs table
 create table if not exists job(
@@ -178,6 +198,15 @@ create table if not exists employeeDocument(
 	constraint fk_employee_document_type_id foreign key(fkTypeId) references documentType(typeId)	
 );
 
+-- Creation of repair table
+create table if not exists repair(
+	repairId int auto_increment,
+	fkVehicleId int not null,
+	repairDate date not null,
+	description text,
+	constraint pk_repair_id primary key(repairId),
+	constraint fk_repair_vehicle_id foreign key(fkVehicleId) references vehicle(vehicleId)
+);
 
 
 
