@@ -289,6 +289,103 @@ create table if not exists piece(
 );
 
 
+-- Creation of supplierPiece table
+create table if not exists supplierPiece(
+	supplierPieceId int auto_increment,
+	fkPieceId int not null,
+	fkBrandId int,
+	itemPrice decimal(15, 2) not null,
+	constraint pk_supplierPiece_id primary key(supplierPieceId),
+	constraint fk_supplier_piece_id foreign key(fkPieceId) references piece(pieceId),
+	constraint fk_supplierPiece_brand_id foreign key(fkBrandId) references brand(brandId)
+);
+
+
+-- Creation of pieceStock table
+create table if not exists pieceStock(
+	pieceStockId int auto_increment,
+	fkSupplierPieceId int not null,
+	fkZoneId int not null,
+	fkHeadquarterId int not null,
+	stock int not null,
+	constraint pk_pieceStock_id primary key(pieceStockId),
+	constraint fk_pieceStock_supplierPiece_id foreign key(fkSupplierPieceId) references supplierPiece(supplierPieceId),
+	constraint fk_pieceStock_zone_id foreign key(fkZoneId) references zone(zoneId),
+	constraint fk_pieceStock_headquarter_id foreign key(fkHeadquarterId) references headquarter(headquarterId)
+); 
+
+-- Creation of repairPiece table
+create table if not exists repairPiece(
+	fkRepairId int not null,
+	fkPieceStockId int not null,
+	quantity int not null,
+	constraint pk_repairPiece_id primary key(fkRepairId, fkPieceStockId),
+	constraint fk_repairPiece_repair_id foreign key(fkRepairId) references repair(repairId),
+	constraint fk_repair_pieceStock_id foreign key(fkPieceStockId) references supplierPiece(supplierPieceId)
+); 
+
+
+-- Creation of appointment table
+create table if not exists appointment(
+	appointmentId int auto_increment,
+	fkCustomerId int not null,
+	appointDate datetime not null,
+	fkHeadquarterId int not null,
+	description text,
+	constraint pk_appointment_id primary key(appointmentId),
+	constraint fk_appointment_customer_id foreign key(fkCustomerId) references customer(customerId),
+	constraint fk_appointment_headquarter_id foreign key(fkHeadquarterId) references headquarter(headquarterId)
+);
+
+
+-- Creation of appointmentVehicle table
+create table if not exists appointmentVehicle(
+	fkAppointmentId int not null,
+	fkVehicleId int not null,
+	constraint pk_appointmentVehicle_id primary key(fkAppointmentId, fkVehicleId),
+	constraint fk_appointmentVehicle_appointment_id foreign key(fkAppointmentId) references appointment(appointmentId),
+	constraint fk_appointmentVehicle_vehicle_id foreign key(fkVehicleId) references vehicle(vehicleId)
+);
+
+-- Creation of invoice table
+create table if not exists invoice(
+	invoiceId int auto_increment,
+	fkCustomerId int not null,
+	invoiceDate datetime not null,
+	fkHeadquarterId int not null,
+	constraint pk_invoice_id primary key(invoiceId),
+	constraint fk_invoice_customer_id foreign key(fkCustomerId) references customer(customerId),
+	constraint fk_invoice_headquarter_id foreign key(fkHeadquarterId) references headquarter(headquarterId)
+);
+
+-- Creation of repairInvoice table
+create table if not exists repairInvoice(
+	fkInvoiceId int not null,
+	fkRepairId int not null,
+	constraint pk_repairInvoice_id primary key(fkInvoiceId, fkRepairId),
+	constraint fk_repairInvoice_invoice_id foreign key(fkInvoiceId) references invoice(invoiceId),
+	constraint fk_repairInvoice_repair_id foreign key(fkRepairId) references repair(repairId)
+);
+
+-- Creation of purchaseOrder table
+create table if not exists purchaseOrder(
+	purchaseOrderId int auto_increment,
+	fkEmployeeId int not null,
+	orderDate datetime not null default(CURRENT_TIMESTAMP()),
+	description text,
+	constraint pk_purchaseOrder_id primary key(purchaseOrderId),
+	constraint fk_purchaseOrderId_employee_id foreign key(fkEmployeeId) references employee(employeeId)
+);
+
+-- Creation of purchaseOrderPiece table
+create table if not exists purchaseOrderPiece(
+	fkPurchaseOrderId int not null,
+	fkSupplierPieceId int not null,
+	quantity int not null,
+	constraint pk_purchaseOrderPiece_id primary key(fkPurchaseOrderId, fkSupplierPieceId),
+	constraint fk_purchaseOrderPiece_order_id foreign key(fkPurchaseOrderId) references purchaseOrder(purchaseOrderId),
+	constraint fk_purchaseOrderPiece_supplierPiece_id foreign key(fkSupplierPieceId) references supplierPiece(supplierPieceId)
+);
 
 
 
