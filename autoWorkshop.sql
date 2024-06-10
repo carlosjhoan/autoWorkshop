@@ -213,6 +213,7 @@ create table if not exists repair(
 create table if not exists outSiteRepairService(
 	fkRepairId int not null,
 	fkOutSiteServiceId int not null,
+	spentTime time,
 	fkEmployeeId int not null,
 	address varchar(100) not null,
 	fkCityId int not null,
@@ -227,6 +228,7 @@ create table if not exists outSiteRepairService(
 create table if not exists onSiteRepairService(
 	fkRepairId int not null,
 	fkOnSiteServiceId int not null,
+	spentTime time,
 	fkEmployeeId int not null,
 	constraint pk_onSiteRepairService_id primary key(fkRepairId, fkOnSiteServiceId),
 	constraint fk_onSiteService_repair_id foreign key(fkRepairId) references repair(repairId),
