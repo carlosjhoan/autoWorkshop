@@ -310,6 +310,7 @@ create table if not exists pieceStock(
 	fkZoneId int not null,
 	fkHeadquarterId int not null,
 	stock int not null,
+	maxStock int not null,
 	constraint pk_pieceStock_id primary key(pieceStockId),
 	constraint fk_pieceStock_supplierPiece_id foreign key(fkSupplierPieceId) references supplierPiece(supplierPieceId),
 	constraint fk_pieceStock_zone_id foreign key(fkZoneId) references zone(zoneId),
