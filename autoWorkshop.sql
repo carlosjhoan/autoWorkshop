@@ -294,10 +294,12 @@ create table if not exists supplierPiece(
 	supplierPieceId int auto_increment,
 	fkPieceId int not null,
 	fkBrandId int,
+	fkSupplierId INT not null,
 	itemPrice decimal(15, 2) not null,
 	constraint pk_supplierPiece_id primary key(supplierPieceId),
 	constraint fk_supplier_piece_id foreign key(fkPieceId) references piece(pieceId),
-	constraint fk_supplierPiece_brand_id foreign key(fkBrandId) references brand(brandId)
+	constraint fk_supplierPiece_brand_id foreign key(fkBrandId) references brand(brandId),
+	constraint fk_supplierPiece_supplier_id foreign key(fkSupplierId) references supplier(supplierId)
 );
 
 
