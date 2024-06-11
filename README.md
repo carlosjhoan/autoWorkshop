@@ -898,14 +898,21 @@ WHERE
 
 
 ### Outcome
-| repairId | fkVehicleId |
-|:--------:|:-----------:|
-|        7 |           7 |
-|        8 |           8 |
-|        9 |           9 |
-|       12 |          11 |
-|       15 |          14 |
-|       18 |          17 |
-|       21 |          19 |
-|       22 |          20 |
-|       23 |          21 |
+| employeeId | employeeName              | Service                                                        |
+|:----------:|-------------------------:|:--------------------------------------------------------------:|
+|          5 | Ana Herrera Rodríguez     | Cambio de aceite y filtro                                      |
+|          6 | Luis Fernández Prez      | Cambio de aceite y filtro                                      |
+|         13 | Natalia Vargas López      | Reparación de frenos                                           |
+|         17 | Gabriela Castro Prez     | Alineación y balanceo                                          |
+|          9 | Andrea Torres Gmez       | Revisión y mantenimiento periódico                             |
+|         16 | Manuel Nuez Rodríguez    | Reparación de sistemas de suspensión y dirección               |
+|         17 | Gabriela Castro Pírez     | Reparación de sistemas de transmisión                          |
+|         12 | Javier Gmez Garca       | Reparación de sistemas de enfriamiento                         |
+|          4 | carlos  Garca Prez      | Diagnóstico y reparación de sistemas eléctricos y electrónicos |
+|         20 | Miguel López Martínez     | Diagnóstico y reparación de sistemas eléctricos y electrónicos |
+|         18 | Daniel Alvarez Hernández  | Reparación de sistemas de escape                               |
+|          3 | Laura Rodrguez Hernndez | Servicios de carrocería y pintura                              |
+|          4 | Carlos  García Pérez      | Servicio de arranque                                           |
+|          5 | Ana Herrera Rodríguez     | Reparación de pinchazos                                        |
+|          6 | Luis Fernández Pérez      | Reparación de pinchazos                                        |
+
