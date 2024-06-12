@@ -916,3 +916,220 @@ WHERE
 |          5 | Ana Herrera Rodríguez     | Reparación de pinchazos                                        |
 |          6 | Luis Fernández Pérez      | Reparación de pinchazos                                        |
 
+
+# Subquieries  
+
+*1.* Obtain the customer who has spent the most on repairs during the last year.
+
+### Querie
+~~~~mysql
+SELECT
+		customerId,
+		customerName,
+		SUM(Price) AS totalPrice
+FROM
+		(	
+		(SELECT 
+				c.customerId,
+				CONCAT(c.firstName, ' ', IFNULL(c.lastName, '')) AS customerName,
+				sum(onss.price) AS Price
+		FROM 
+				customer AS c,
+				vehicle AS v,
+				repair AS r,
+				onSiteRepairService AS onsrs,
+				onSiteService AS onss
+		WHERE 
+				c.customerId = v.fkCustomerId AND 
+				v.vehicleId = r.fkVehicleId AND  
+				onsrs.fkRepairId = r.repairId AND 
+				onsrs.fkOnSiteServiceId = onss.onSiteServiceId AND 
+				r.repairDateOut >= ADDDATE(CURRENT_DATE(), INTERVAL -1 YEAR)
+		GROUP BY 
+			c.customerId)
+				
+		UNION 
+		
+		(SELECT 
+				c.customerId,
+				CONCAT(c.firstName, ' ', IFNULL(c.lastName, '')) AS customerName,
+				sum(ouss.price) AS Price
+		FROM 
+				customer AS c,
+				vehicle AS v,
+				repair AS r,
+				outSiteRepairService AS ousrs,
+				outSiteService AS ouss
+		WHERE 
+				c.customerId = v.fkCustomerId AND 
+				v.vehicleId = r.fkVehicleId AND 
+				ousrs.fkRepairId = r.repairId AND 
+				ousrs.fkOutSiteServiceId = ouss.outSiteServiceId AND
+				r.repairDateOut >= ADDDATE(CURRENT_DATE(), INTERVAL -1 YEAR)
+		GROUP BY 
+			c.customerId)) AS servicePrice
+GROUP BY 
+		customerId
+ORDER BY 
+		totalPrice DESC
+LIMIT 1;
+~~~~
+
+
+### Outcome
+| customerId | customerName         | totalPrice |
+|:----------:|:--------------------:|:----------:|
+|         10 | VIJUAGUAL CARNES SA  | 1760000.00 |
+
+
+*2.* Obtain the most used part in repairs during the last month.
+
+### Querie
+~~~~mysql
+SELECT 
+		sp.supplierPieceId,
+		p.name AS pieceName,
+		b.name AS brand,
+		SUM(rp.quantity) AS pieceQuantity
+FROM 
+		repair AS r,
+		repairPiece AS rp,
+		pieceStock AS ps,
+		supplierPiece AS sp,
+		piece AS p,
+		brand AS b
+WHERE
+		r.repairId = rp.fkRepairId AND 
+		rp.fkPieceStockId = ps.pieceStockId AND 
+		ps.fkSupplierPieceId = sp.supplierPieceId and
+		sp.fkPieceId = p.pieceId AND 
+		sp.fkBrandId  = b.brandId AND
+		r.repairDateOut >= ADDDATE(CURRENT_DATE(), INTERVAL -1 MONTH)
+GROUP BY 
+		supplierPieceId
+ORDER BY
+		Quantity DESC
+LIMIT 1;
+~~~~
+
+
+### Outcome
+| supplierPieceId | pieceName | brand | pieceQuantity |
+|:---------------:|:---------:|:-----:|:-------------:|
+|               6 | Neumtico | Bosch |             1 |
+
+*3.* Obtain the suppliers that provide the most expensive parts.
+
+### Querie
+~~~~mysql
+SELECT 
+		supplierId,
+		supplierNAme
+FROM
+		(
+			SELECT 
+					s.supplierId,
+					s.name AS supplierName,
+					AVG(sp.itemPrice) AS averItemPrice
+			FROM 
+					supplier AS s,
+					supplierPiece AS sp
+			WHERE
+					s.supplierId = sp.fkSupplierId
+			GROUP BY
+					s.supplierId
+			ORDER BY 
+				averItemPrice DESC 
+			LIMIT 3) AS avg_item_price;
+~~~~
+
+
+### Outcome
+| supplierId | supplierNAme      |
+|:----------:|:-----------------:|
+|          3 | TurboAutoSupplies |
+|          1 | AutoPartsPlus     |
+|          2 | SpeedyCarParts    |
+
+*4.* List the repairs that did not use specific parts during the last year.
+
+### Querie
+~~~~mysql
+SELECT 
+		r.repairId,
+		r.fkVehicleId
+FROM
+		repair AS r
+LEFT JOIN 
+		repairPiece AS rp
+ON 		
+		r.repairId = rp.fkRepairId
+WHERE
+	rp.fkPieceStockId IS NULL AND 
+	r.repairDateOut >= ADDDATE(CURRENT_DATE(), INTERVAL -1 YEAR);
+~~~~
+
+
+### Outcome
+| repairId | fkVehicleId |
+|:--------:|:-----------:|
+|        7 |           7 |
+|        8 |           8 |
+|        9 |           9 |
+|       12 |          11 |
+|       15 |          14 |
+|       18 |          17 |
+|       21 |          19 |
+|       22 |          20 |
+|       23 |          21 |
+
+*5.* Obtain the parts that are in inventory below 10% of the initial stock.
+
+### Querie
+~~~~mysql
+SELECT 
+		sp.supplierPieceId,
+		p.name AS pieceName,
+		b.name AS brand,
+		ps.stock AS currentStock,
+		ps.maxStock,
+		z.name AS zone,
+		h.name AS headquarter 
+
+FROM 
+		piece AS p,
+		pieceStock AS ps,
+		supplierpiece AS sp,
+		brand AS b,
+		zone AS z,
+		headquarter AS h
+WHERE 
+		ps.fkSupplierPieceId = sp.supplierPieceId AND 
+		sp.fkPieceId = p.pieceId AND 
+		sp.fkBrandId = b.brandId AND 
+		ps.fkZoneId = z.zoneId AND 
+		ps.fkHeadquarterId = h.headquarterId AND 
+		((ps.maxStock - ps.stock)  / ps.maxStock) * 100 >= 10;
+~~~~
+
+
+### Outcome
+| supplierPieceId | pieceName               | brand       | currentStock | maxStock | zone                                 | headquarter        |
+|:---------------:|:-----------------------:|:-----------:|:------------:|:--------:|:------------------------------------:|:------------------:|
+|               1 | Filtro de aceite        | Bosch       |           11 |       13 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|               2 | Bujía                   | Denso       |           14 |       16 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|               4 | Amortiguador            | Bosch       |           35 |       42 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|               5 | Batería                 | KYB         |           52 |       68 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|               6 | Neumático               | Bosch       |           45 |       51 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|               7 | Cable de encendido      | Aisin       |           23 |       32 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|               8 | Bomba de agua           | Continental |           52 |       65 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|              10 | Correas de distribución | Continental |           35 |       42 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|              11 | Alternador              | Bosch       |           51 |       60 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|              12 | Radiador                | Denso       |           25 |       42 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|              13 | Disco de freno          | Brembo      |           32 |       40 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|              14 | Sensor de oxígeno       | SKF         |           22 |       35 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|              15 | Bomba de combustible    | Milwaukee   |           10 |       12 | rea de Almacenamiento y Suministros | Taller Bucaramanga |
+|              16 | Inyector de combustible | Bosch       |           10 |       15 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|              18 | Embrague                | Optima      |            8 |        9 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+|              20 | Tornillo de rueda       | Continental |          150 |      170 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
+
