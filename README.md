@@ -1133,3 +1133,629 @@ WHERE
 |              18 | Embrague                | Optima      |            8 |        9 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
 |              20 | Tornillo de rueda       | Continental |          150 |      170 | Área de Almacenamiento y Suministros | Taller Bucaramanga |
 
+
+# Stored Procedures
+*1.* Create a stored procedure to insert a new repair.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE PROCEDURE repairProcedure(IN vehId INT, IN dateIn DATE, IN dateOut DATE, IN descr TEXT)
+BEGIN
+		DECLARE msj VARCHAR(100);
+		INSERT INTO repair(fkVehicleId, repairDateIn, repairDateOut, description)
+		VALUES (vehId, dateIn, dateOut, descr);
+		if ROW_COUNT() > 0 then
+			SET msj = 'Successfully Insertion';
+		ELSE 
+			SET msj = 'Failed Insertion';
+		END if;
+		
+		SELECT msj; 
+END $$
+delimiter ;
+
+SET @vehId = 10;
+SET @dateIn = '2024-06-01';
+SET @dateOut = '2024-06-11';
+SET @descr = 'Se necesita cambiar neuméticos y cambio de filtros de aceite y aire';
+
+CALL repairProcedure(@vehId, @dateIn, @dateOut, @descr);
+
+SELECT fkVehicleId, repairDateIn, repairDateOut, description FROM REPAIR
+WHERE fkVehicleId = 10;
+~~~~
+
+
+### Outcome
+| msj                    |
+|:----------------------:|
+| Successfully Insertion |
+
+| fkVehicleId | repairDateIn | repairDateOut | description|
+|:-----------:|:------------:|:-------------:|:------------------------------------------------------------------------------------------------------------:|
+|          10 | 2020-08-10   | 2020-08-17    | Se reemplaz el sensor de oxgeno defectuoso para corregir un cdigo de error del sistema de control de emisiones.|
+|          10 | 2022-02-10   | 2022-03-02    | Se le apag en el camino. Se realizaron mltiples reparaciones en el sistema de encendido |
+|          10 | 2024-06-01   | 2024-06-11    | Se necesita cambiar neuméticos y cambio de filtros de aceite y agua|
+
+*2.* Create a stored procedure to update the inventory of a part.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE  PROCEDURE  addPieceQuantity(IN supplPiece INT, IN zoneIn INT, IN headq INT, IN  quantity INT)
+BEGIN 
+	DECLARE quant INT;
+	DECLARE qPieces INT; 
+	DECLARE msj VARCHAR(100);
+	
+	SELECT
+		stock INTO quant
+	FROM
+		pieceStock
+	WHERE
+		fkSupplierPieceId = supplPiece AND
+		fkZoneId = zoneIn AND
+		fkHeadquarterId = headq;
+		
+	SET qPieces = quant + quantity;
+	
+	UPDATE pieceStock
+	SET stock = qPieces
+	WHERE 	fkSupplierPieceId = supplPiece AND
+				fkZoneId = zoneIn AND
+				fkHeadquarterId = headq;
+	
+	if ROW_COUNT() > 0 then
+			SET msj = 'Successfully Updated';
+	ELSE 
+			SET msj = 'Failed Updated';
+	END if;
+		
+	SELECT msj; 	
+
+END  $$
+delimiter ;
+
+SET @supplPiece = 2;
+SET @zoneIn = 8;
+SET @headq = 1;
+SET @quanqtity = 2;
+
+SELECT
+		fkSupplierPieceId,
+		fkZoneId,
+		fkHeadquarterId,
+		stock
+FROM
+		pieceStock
+WHERE 		
+		fkSupplierPieceId = @supplPiece AND
+		fkZoneId = @zoneIn AND 
+		fkHeadquarterId = @headq;
+
+CALL addPieceQuantity(@supplPiece, @zoneIn, @headq, @quanqtity);
+
+SELECT
+		fkSupplierPieceId,
+		fkZoneId,
+		fkHeadquarterId,
+		stock
+FROM
+		pieceStock
+WHERE 		
+		fkSupplierPieceId = @supplPiece AND
+		fkZoneId = @zoneIn AND 
+		fkHeadquarterId = @headq;
+~~~~
+
+
+### Outcome
+#### BEFORE PROCEDURE
+| fkSupplierPieceId | fkZoneId | fkHeadquarterId | stock |
+|:-----------------:|:--------:|:---------------:|:-----:|
+|                 2 |        8 |               1 |    14 |
+
+#### AFTER PROCEDURE
+| msj                  |
+|:--------------------:|
+| Successfully Updated |
+
+| fkSupplierPieceId | fkZoneId | fkHeadquarterId | stock |
+|:-----------------:|:--------:|:---------------:|:-----:|
+|                 2 |        8 |               1 |    16 |
+
+*3.* Create a stored procedure to delete an appointment.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE PROCEDURE appointmentDelented(IN appointId INT)
+BEGIN
+	DECLARE msj VARCHAR(100);
+	
+	DELETE FROM appointmentVehicle
+	WHERE fkAppointmentId = appointId;
+	
+	DELETE FROM appointment
+	WHERE appointmentId = appointId;
+	
+	if ROW_COUNT() > 0 then
+			SET msj = 'Successfully Deleted';
+	ELSE 
+			SET msj = 'Failed Deleted';
+	END if;
+		
+	SELECT msj; 
+		
+END $$
+delimiter ;
+
+SET @appointId = 7;
+
+SELECT 
+		appointmentId, description
+FROM
+	appointment
+WHERE
+	appointmentId = @appointId;
+	
+CALL appointmentDelented(@appointId);
+
+SELECT 
+		appointmentId, description
+FROM
+	appointment
+WHERE
+	appointmentId = @appointId;
+~~~~
+
+
+### Outcome
+| msj                  |
+|:--------------------:|
+| Successfully Deleted |
+
+*4.* Create a stored procedure to generate an invoice.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE PROCEDURE  invoiceGenerated(IN invId INT)
+BEGIN 
+	DECLARE msj VARCHAR(100);
+	
+	if invId = ANY(SELECT invoiceId FROM invoice) then
+		set msj = 'It´s OK!';
+		SELECT
+			invoiceId,
+			customerId,
+			customerName,
+			invoiceDate,
+			SUM(Price) AS totalPrice
+	FROM
+			(	
+			(SELECT 
+					i.invoiceId,
+					c.customerId,
+					CONCAT(c.firstName, ' ',IFNULL(c.lastName, '')) AS customerName,
+					i.invoiceDate,
+					sum(onss.price) AS Price
+			FROM 
+					invoice AS i,
+					repairinvoice AS ri,
+					customer AS c,
+					vehicle AS v,
+					repair AS r,
+					onSiteRepairService AS onsrs,
+					onSiteService AS onss
+			WHERE 
+					i.fkCustomerId = c.customerId AND 
+					c.customerId = v.fkCustomerId AND 
+					v.vehicleId = r.fkVehicleId AND 
+					ri.fkInvoiceId = i.invoiceId AND 
+					ri.fkRepairId = r.repairId AND 
+					onsrs.fkRepairId = r.repairId AND 
+					onsrs.fkOnSiteServiceId = onss.onSiteServiceId AND
+					i.invoiceId = invId 
+			GROUP BY 
+					i.invoiceId)
+					
+			UNION 
+			
+			(SELECT 
+					i.invoiceId,
+					c.customerId,
+					CONCAT(c.firstName, ' ', IFNULL(c.lastName, '')) AS customerName,
+					i.invoiceDate,
+					sum(ouss.price) AS Price
+			FROM 
+					invoice AS i,
+					repairinvoice AS ri,
+					customer AS c,
+					vehicle AS v,
+					repair AS r,
+					outSiteRepairService AS ousrs,
+					outSiteService AS ouss
+			WHERE 
+					i.fkCustomerId = c.customerId AND 
+					c.customerId = v.fkCustomerId AND 
+					v.vehicleId = r.fkVehicleId AND 
+					ri.fkInvoiceId = i.invoiceId AND 
+					ri.fkRepairId = r.repairId AND 
+					ousrs.fkRepairId = r.repairId AND 
+					ousrs.fkOutSiteServiceId = ouss.outSiteServiceId AND
+					i.invoiceId = invId
+			GROUP BY 
+					i.invoiceId)) AS servicePrice
+	GROUP BY 
+			invoiceId;
+		
+	else
+		set msj = 'This invoice doen´t exist';
+	END if;
+	
+	SELECT msj;
+END  $$
+delimiter ;
+
+SET @invId = 10;
+CALL invoiceGenerated(@invId);
+~~~~
+
+
+### Outcome
+| invoiceId | customerId | customerName  | invoiceDate         | totalPrice |
+|:---------:|:----------:|:-------------:|:-------------------:|:----------:|
+|        10 |          7 | FARMATODO SA  | 2024-05-25 00:00:00 |  190000.00 |
+
+| msj      |
+|:--------:|
+| Its OK! |
+
+*5.* Create a stored procedure to obtain the repair history of a vehicle.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE PROCEDURE histRepairs(IN vehId INT) 
+BEGIN 
+	DECLARE msj VARCHAR(100);
+	
+	if vehId = ANY(SELECT vehicleId FROM vehicle) then
+		set msj = 'It´s OK!';
+		
+		SELECT
+			fkVehicleId AS vehicleId,
+			repairDateIn,
+			repairDateOut,
+			description
+		FROM
+			repair
+		WHERE
+			fkVehicleId = vehId;
+	else
+		set msj = 'This vehicle doen´t exist';
+	END if;
+	
+	SELECT msj;
+	
+END  $$
+delimiter ;
+
+
+SET @vehId = 30;
+
+CALL histRepairs(@vehId);
+~~~~
+
+
+### Outcome
+| vehicleId | repairDateIn | repairDateOut | description |
+|:---------:|:------------:|:-------------:|:--------------------------------------------------------------------------------:|
+|        10 | 2020-08-10   | 2020-08-17    | Se reemplaz el sensor de oxgeno defectuoso para corregir un cdigo de error del sistema de control de emisiones.|
+|        10 | 2022-02-10   | 2022-03-02    | Se le apag en el camino. Se realizaron mltiples reparaciones en el sistema de encendido.|
+|        10 | 2024-06-01   | 2024-06-11    | Se necesita cambiar neuméticos y cambio de filtros de aceite y aire|
+
+| msj      |
+|:--------:|
+| Its OK! |  
+
+*6.* Create a stored procedure to calculate the total cost of repairs for a customer in a period.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE PROCEDURE totalCostRepair(IN custId INT, IN dateFrom DATE, IN dateTo DATE) 
+BEGIN 
+	DECLARE msj VARCHAR(100);
+	
+	if custId = ANY(SELECT customerId FROM customer) then
+		set msj = 'It´s OK!';
+		
+		SELECT
+			customerId,
+			customerName,
+			Format(SUM(Price), 2) AS totalPrice
+	FROM
+			(	
+			(SELECT 
+					c.customerId,
+					CONCAT(c.firstName, ' ', IFNULL(c.lastName, '')) AS customerName,
+					sum(onss.price) AS Price
+			FROM 
+					customer AS c,
+					vehicle AS v,
+					repair AS r,
+					onSiteRepairService AS onsrs,
+					onSiteService AS onss
+			WHERE 
+					c.customerId = v.fkCustomerId AND 
+					v.vehicleId = r.fkVehicleId AND  
+					onsrs.fkRepairId = r.repairId AND 
+					onsrs.fkOnSiteServiceId = onss.onSiteServiceId AND
+					r.repairDateOut >= dateFrom AND r.repairDateOut <= dateTo AND 
+					c.customerId = custId
+			GROUP BY
+					c.customerId)
+					
+			UNION 
+			
+			(SELECT 
+					c.customerId,
+					CONCAT(c.firstName, ' ', IFNULL(c.lastName, '')) AS customerName,
+					sum(ouss.price) AS Price
+			FROM 
+					customer AS c,
+					vehicle AS v,
+					repair AS r,
+					outSiteRepairService AS ousrs,
+					outSiteService AS ouss
+			WHERE 
+					c.customerId = v.fkCustomerId AND 
+					v.vehicleId = r.fkVehicleId AND 
+					ousrs.fkRepairId = r.repairId AND 
+					ousrs.fkOutSiteServiceId = ouss.outSiteServiceId AND
+					r.repairDateOut >= dateFrom AND r.repairDateOut <= dateTo AND
+					c.customerId = custId
+			GROUP BY
+					c.customerId)) AS servicePrice
+	GROUP BY 
+			customerId;
+	
+	else
+		set msj = 'This customer doen´t exist';
+	
+	END if;
+	
+	SELECT msj;
+
+END $$
+delimiter;
+
+SET @custId = 5;
+SET @dateFrom = '2020-06-30';
+SET @dateTo = '2024-06-10';
+
+CALL totalCostRepair(@custId, @dateFrom, @dateTo); 
+~~~~
+
+
+### Outcome
+| customerId | customerName                | totalPrice |
+|:----------:|:---------------------------:|:----------:|
+|          5 | Luis Alfonso Gómez Mancilla | 680,000.00 |
+
+| msj      |
+|:--------:|
+| Its OK! |
+
+*8.* Create a stored procedure to insert a new purchase order.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE PROCEDURE insertPurchaseOrder(in emplId INT, IN descr text) 
+BEGIN 
+	DECLARE msj VARCHAR(100);
+	
+	INSERT INTO purchaseOrder(fkEmployeeId, orderDate, description)
+	VALUES (emplId, CURRENT_TIMESTAMP(), descr);
+	
+	if ROW_COUNT() > 0 then
+		SET msj = 'Successfully Insertion';
+		
+	ELSE 
+		SET msj = 'Failed Insertion';
+	END if;
+		
+	SELECT msj; 
+	
+END $$
+delimiter;
+
+SET @emplId = 11;
+SET @descr = 'Se acaban los tornillos para ajustar el motor. Se agitan filtros de aceiete y aire';
+
+CALL insertPurchaseOrder(@emplId , @descr);
+
+SELECT
+	purchaseOrderId,
+	fkEmployeeId,
+	orderDate,
+	description
+FROM 
+	purchaseOrder
+WHERE
+	purchaseOrderId = LAST_INSERT_ID();	
+~~~~
+
+
+### Outcome
+| msj                    |
+|:----------------------:|
+| Successfully Insertion |
+
+| purchaseOrderId | fkEmployeeId | orderDate           | description                                                                        |
+|:---------------:|:------------:|:-------------------:|:----------------------------------------------------------------------------------:|
+|               9 |           11 | 2024-06-11 19:58:16 | Se acaban los tornillos para ajustar el motor. Se agitan filtros de aceiete y aire |
+
+*9.* Create a stored procedure to update the data of a customer.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE PROCEDURE updateCustomerInfo(in custId INT, IN fName VARCHAR(50), IN lName VARCHAR(50), IN custEmail VARCHAR(100)) 
+BEGIN 
+	DECLARE msj VARCHAR(100);
+	DECLARE msjUpdate VARCHAR(100);
+	DECLARE nameF VARCHAR(50);
+	DECLARE nameL VARCHAR(50);
+	DECLARE emailC VARCHAR(100);
+	
+	SELECT
+		firstName, 
+		lastName, 
+		email INTO nameF, nameL, emailC
+	FROM
+		customer
+	WHERE 
+		customerId = custId;
+	
+	if custId = ANY(SELECT customerId FROM customer) then
+		set msj = 'It´s OK!';
+		
+		if fName = '' OR fName = ' ' then
+			SET fName = nameF;
+		ELSE 
+			SET fName = fName;
+		END if;
+		
+		if lName = '' OR lName = ' ' then
+			SET lName = nameL;
+		ELSE 
+			SET lName = lName;
+		END if;
+		
+		if custEmail = '' OR custEmail = ' ' then
+			SET custEmail = emailC;
+		ELSE 
+			SET custEmail = custEmail;
+		END if;
+		
+		UPDATE customer
+		SET firstName = fName, lastName = lName, email = custEmail
+		WHERE
+			customerId = custId;
+			
+		if ROW_COUNT() > 0 then
+			SET msjUpdate = 'Successfully Updating';
+		
+		ELSE 
+			SET msjUpdate = 'Failed Updating';
+		END if;
+			
+		SELECT msjUpdate; 
+		
+	
+	ELSE 
+		set msj = 'This customer doesn´t exist.';
+	
+	END if;
+END $$
+delimiter ;
+
+SET @custId = 1;
+SET @fName = 'Fulanito';
+SET @lName = ' ';
+SET @custEmail = 'newEmail2006@example.com';
+
+CALL updateCustomerInfo(@custId, @fName, @lName, @custEmail); 
+
+SELECT
+	*
+FROM 
+	customer
+WHERE
+	customerId = @custId;
+~~~~
+
+
+### Outcome
+| msjUpdate             |
+|:---------------------:|
+| Successfully Updating |
+
+
+| customerId | firstName | lastName | email                    |
+|:----------:|:---------:|:--------:|:------------------------:|
+|          1 | Fulanito  | Aguilar  | newEmail2006@example.com |
+
+
+*10.* Create a stored procedure to obtain the most requested services in a period.
+
+### Querie
+~~~~mysql
+delimiter $$
+CREATE PROCEDURE mostSolicitatedServices(IN dateFrom DATE, IN dateTo DATE) 
+BEGIN 
+	SELECT
+			Service,
+			quantService
+	FROM 
+			(
+				(SELECT
+					onss.name AS Service,
+					COUNT(onss.onSiteServiceId) AS quantService
+				FROM 
+					repair AS r,
+					onSiteService AS onss,
+					onSiteRepairService AS onsrs
+				WHERE 
+						r.repairId = onsrs.fkRepairId AND 
+						onsrs.fkOnSiteServiceId = onss.onSiteServiceId AND 
+						r.repairDateOut >= dateFrom AND r.repairDateOut <= dateTo
+				GROUP by
+						Service)
+						
+				UNION
+				
+				(SELECT
+					ouss.name AS Service,
+					COUNT(ouss.outSiteServiceId) AS quantService
+				FROM 
+					repair AS r,
+					outSiteService AS ouss,
+					outSiteRepairService AS ousrs
+				WHERE 
+						r.repairId = ousrs.fkRepairId AND 
+						ousrs.fkOutSiteServiceId = ouss.outSiteServiceId AND 
+						r.repairDateOut >= dateFrom AND r.repairDateOut <= dateTo
+				GROUP by
+						Service)) AS services
+	ORDER BY quantService DESC;
+END $$
+delimiter;
+
+SET @dateFrom = '2020-01-01';
+SET @dateTo = '2024-06-10';
+
+CALL mostSolicitatedServices(@dateFrom, @dateTo);
+~~~~
+
+
+### Outcome
+| Service                                                        | quantService |
+|:--------------------------------------------------------------:|:------------:|
+| Cambio de aceite y filtro                                      |            6 |
+| Reparacin de frenos                                           |            5 |
+| Reparacin de sistemas de suspensin y direccin               |            5 |
+| Diagnstico y reparacin de sistemas elctricos y electrnicos |            5 |
+| Alineacin y balanceo                                          |            3 |
+| Servicio de arranque                                           |            3 |
+| Reparacin de sistemas de transmisin                          |            2 |
+| Reparacin de pinchazos                                        |            2 |
+| Reparacin de sistemas de escape                               |            2 |
+| Revisin y mantenimiento peridico                             |            2 |
+| Servicios de carrocera y pintura                              |            1 |
+| Reparacin de sistemas de enfriamiento                         |            1 |
